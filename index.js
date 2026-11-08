@@ -266,13 +266,28 @@ function scanAvatars() {
 }
 
 /* ───────────── 底部按钮收纳 ───────────── */
-/* TavernHelper 的脚本按钮（山河舆图、音频播放器等）与 MVU 的「重新处理变量」
-   都挤在输入区附近同一个容器里，换行后很占地方。
-   不靠 class 猜，而是按按钮文字特征找到那个容器，整体收进一个开关后面。 */
+/* 输入区里常被各家扩展塞进一堆按钮（脚本快捷按钮、变量处理按钮之类），
+   换行后很占地方。定位那个容器用两层策略：
+     1) 先按常见按钮文字特征找（准）
+     2) 找不到就退回结构判断——输入区里按钮最集中的那个子容器（泛用）
+   两者都不越过 #send_form / #form_sheld 的边界，避免收走发送键与输入框。 */
 
 const DOCK_KEYWORDS = ['山河舆图', '音频播放', '音频', '重新处理变量', '重新生成变量', '处理变量'];
 let dockEl = null;
 let dockToggle = null;
+
+/* 结构兜底：在输入区内找按钮最集中的子容器 */
+function findDockByStructure(root) {
+    let best = null;
+    let bestCount = 0;
+    for (const child of root.children) {
+        /* 含输入框或发送区的不要 */
+        if (child.querySelector('textarea, #send_textarea, #send_but, #rightSendForm, #leftSendForm')) continue;
+        const n = child.querySelectorAll('button, .menu_button, [role="button"]').length;
+        if (n > bestCount) { bestCount = n; best = child; }
+    }
+    return bestCount >= 3 ? best : null;
+}
 
 function looksLikeButton(el) {
     if (!el || el.nodeType !== 1) return false;
@@ -281,13 +296,14 @@ function looksLikeButton(el) {
     return /menu_button|mes_button|button/.test(cls) || el.getAttribute('role') === 'button';
 }
 
-/* 按文字特征找到「装着这些脚本按钮的那个容器」
+/* 定位「装着那一堆扩展按钮的容器」
    搜索范围严格限定在酒馆原生的输入框容器内部（#send_form / #form_sheld），
    不碰聊天区，避免误收其它按钮。 */
 function findButtonDock() {
     const root = document.getElementById('send_form') || document.getElementById('form_sheld');
     if (!root) return null;
 
+    /* 第一层：按按钮文字特征找 */
     const all = root.querySelectorAll('button, .menu_button, [role="button"], div, span');
     for (const el of all) {
         const txt = (el.textContent || '').trim();
@@ -303,7 +319,9 @@ function findButtonDock() {
             node = node.parentElement;
         }
     }
-    return null;
+
+    /* 第二层：文字特征没命中，退回结构判断 */
+    return findDockByStructure(root);
 }
 
 function ensureDock() {
