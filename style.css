@@ -81,27 +81,13 @@ body.documentstyle #chat .mes:not(.last_mes) {
 }
 
 /* ───────── 五、头像不再是独立一列 ───────── */
-/* JS 会把 .mesAvatarWrapper 挪进 .ch_name 的时间后面。
-   这里只负责把它变成行内小图标——尺寸用高度+比例控制，
-   不写死宽高，四种头像样式（圆/矩/方/圆角）的比例都不会被压变形。 */
-body:not(.documentstyle) .mes .mesAvatarWrapper {
-    width: auto !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    height: auto !important;
-    min-height: 0 !important;
-    padding: 0 !important;
-    margin: 0 0 0 6px !important;
-    flex: 0 0 auto !important;
-    display: inline-flex !important;
-    align-items: center;
-    vertical-align: middle;
-    position: static !important;
-    /* 不要用 order 改变排列顺序：那会把头像甩到编辑按钮右边。
-       DOM 上它已经被插到时间元素之后，靠 DOM 顺序即可。 */
-}
+/* ST 的真实结构：
+     .mes > .mesAvatarWrapper > .avatar / .mesIDDisplay / .mes_timer / .tokenCounterDisplay
+   JS 只把 .avatar 本体搬进名字行（插在 <small class="timestamp"> 之后、编辑按钮之前），
+   被搬空的原包裹层留在原地压成 0 宽，于是左侧不再占一列。 */
 
-body:not(.documentstyle) .mes .mesAvatarWrapper .avatar {
+/* 搬进名字行后的头像小图标 */
+body:not(.documentstyle) .mes .ch_name .avatar {
     flex: 0 0 auto !important;
     width: auto !important;
     min-width: 0 !important;
@@ -112,9 +98,31 @@ body:not(.documentstyle) .mes .mesAvatarWrapper .avatar {
     /* 比例由 JS 从 ST 的 --avatar-base-width/height 换算成无单位数写入，
        这样圆形/方形/矩形/圆角四种头像都不会被拉变形 */
     aspect-ratio: var(--sf-avatar-ar, 1);
-    margin: 0 !important;
+    margin: 0 0 0 6px !important;
     cursor: pointer;
     /* border-radius 交给 ST 自己的样式决定，不覆盖 */
+}
+
+body:not(.documentstyle) .mes .ch_name .avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover;
+}
+
+/* 头像被搬走后，原包裹层不再占宽度 */
+body:not(.documentstyle) .mes > .mesAvatarWrapper[data-sf-moved="1"] {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    flex: 0 0 0 !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 /* 名字行：名字靠左，时间与头像一起靠右且紧挨着 */
@@ -127,24 +135,24 @@ body:not(.documentstyle) .mes .ch_name {
     max-width: 100%;
 }
 
-body:not(.documentstyle) .mes .ch_name .mes_timer,
-body:not(.documentstyle) .mes .ch_name .timestamp {
+body:not(.documentstyle) .mes .ch_name .timestamp,
+body:not(.documentstyle) .mes .ch_name .mes_timer {
     margin-left: auto !important;
 }
 
-/* 兜底说明：这里刻意不给 .mes > .mesAvatarWrapper 写任何隐藏规则。
-   如果 JS 没能把头像挪进名字行（DOM 结构差异、脚本未执行等），
-   最坏结果应当是「头像原位不动」，而不是「头像凭空消失」。 */
+/* 兜底说明：这里刻意不给未搬动的 .mesAvatarWrapper 写任何隐藏规则。
+   如果 JS 没能把头像搬进名字行，最坏结果应当是「头像原位不动」，
+   而不是「头像凭空消失」。 */
 
 /* ───────── 六、手工悬浮滑块 ───────── */
 /* 这是一个自绘的 div，不是原生的 ::-webkit-scrollbar。
-   元素本身很宽（26px）当作触摸热区，视觉上的长条由 ::before 画，
-   两者分开，所以能做得又粗又好点，同时平时保持半透明。 */
+   元素本身很宽（46px）当作触摸热区，视觉上的长条由 ::before 画，
+   两者分开，所以能做得又粗又好点，同时平时保持很淡的半透明。 */
 #sf-fit-thumb {
     position: fixed;
     right: 0;
     top: 0;
-    width: 26px;
+    width: 46px;
     background: transparent;
     z-index: 2147483000;
     pointer-events: auto;
@@ -164,18 +172,18 @@ body:not(.documentstyle) .mes .ch_name .timestamp {
     right: 3px;
     top: 0;
     bottom: 0;
-    width: 9px;
-    border-radius: 3px;
+    width: 18px;
+    border-radius: 4px;
     background: var(--SmartThemeBodyColor, #d0d0d8);
-    opacity: 0.28;
+    opacity: 0.14;
     transition: opacity 0.16s ease, width 0.16s ease;
     pointer-events: none;
 }
 
-/* 手指按住热区、或鼠标移上来时变实 */
+/* 手指按住热区、或鼠标移上来、或正在滚动时变实 */
 #sf-fit-thumb.sf-hot::before {
-    opacity: 0.62;
-    width: 10px;
+    opacity: 0.5;
+    width: 20px;
 }
 
 /* 拖动中：最实、最粗 */
@@ -184,6 +192,6 @@ body:not(.documentstyle) .mes .ch_name .timestamp {
 }
 
 #sf-fit-thumb.sf-active::before {
-    opacity: 0.92;
-    width: 12px;
+    opacity: 0.9;
+    width: 24px;
 }
