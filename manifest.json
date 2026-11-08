@@ -1,0 +1,11 @@
+{
+  "display_name": "满幅与悬浮滑块",
+  "loading_order": 100,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "wilson",
+  "version": "1.0.0",
+  "homePage": "https://github.com/ss200052/st-folio-fit"
+}
