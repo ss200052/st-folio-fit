@@ -143,24 +143,35 @@
         }
 
         var nameRow = mes.querySelector('.ch_name');
-        var timer = mes.querySelector('.mes_timer') || mes.querySelector('.timestamp');
+        if (!nameRow) return;   /* 名字行还没渲染出来，下次再试 */
 
-        /* 已经归位过就标记完成，避免反复搬动 */
-        if (nameRow && nameRow.contains(wrap)) {
+        var avatar = wrap.querySelector('.avatar');
+        if (!avatar) {
             mes.dataset.sfFit = '1';
             return;
         }
 
-        if (timer) {
-            timer.insertAdjacentElement('afterend', wrap);
-        } else if (nameRow) {
-            nameRow.appendChild(wrap);
+        /* 已经在名字行里就收工 */
+        if (nameRow.contains(avatar)) {
+            mes.dataset.sfFit = '1';
+            return;
+        }
+
+        /* 注意：ST 的 .mes_timer 是 .mesAvatarWrapper 的子元素，绝不能用它当锚点，
+           那等于把元素插到自己后代的后面。名字行里的时间元素是 <small class="timestamp">。 */
+        var anchor = nameRow.querySelector('.timestamp') || nameRow.querySelector('.mes_timer');
+        var buttons = nameRow.querySelector('.mes_buttons');
+
+        if (anchor) {
+            anchor.insertAdjacentElement('afterend', avatar);
+        } else if (buttons) {
+            buttons.insertAdjacentElement('beforebegin', avatar);
         } else {
-            /* 既没有时间也没有名字行，保持原位，不要强行搬运 */
-            mes.dataset.sfFit = '1';
-            return;
+            nameRow.appendChild(avatar);
         }
 
+        /* 包裹层留在原地并标记，由 CSS 压成 0 宽，不再占一列 */
+        wrap.dataset.sfMoved = '1';
         mes.dataset.sfFit = '1';
     }
 
@@ -212,7 +223,7 @@
         hotTimer = setTimeout(function () {
             hotTimer = null;
             if (thumb && !dragging) thumb.classList.remove('sf-hot');
-        }, 900);
+        }, 300);
     }
 
     function schedule() {
