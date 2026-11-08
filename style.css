@@ -92,9 +92,9 @@ body:not(.documentstyle) .mes .ch_name .avatar {
     width: auto !important;
     min-width: 0 !important;
     max-width: none !important;
-    /* 高度可调：在 Custom CSS 里写 :root { --sf-avatar-h: 36px; } 即可改大改小 */
-    height: var(--sf-avatar-h, 30px) !important;
-    max-height: var(--sf-avatar-h, 30px) !important;
+    /* 高度可调：在 Custom CSS 里写 :root { --sf-avatar-h: 48px; } 即可改大改小 */
+    height: var(--sf-avatar-h, 40px) !important;
+    max-height: var(--sf-avatar-h, 40px) !important;
     min-height: 0 !important;
     /* 比例由 JS 从 ST 的 --avatar-base-width/height 换算成无单位数写入，
        这样圆形/方形/矩形/圆角四种头像都不会被拉变形 */
