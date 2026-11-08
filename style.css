@@ -1,12 +1,17 @@
 /* 满幅与悬浮滑块 — 样式
  *
- * 需要同时适配：
+ * 所有改动都由 JS 根据设置开关挂上的 body 类来控制：
+ *   body.sf-fit-full    聊天区满幅、右侧零占位
+ *   body.sf-fit-avatar  头像挪进名字行
+ * 关掉开关时这些规则整体失效，ST 回到原样。
+ *
+ * 需同时适配：
  *   聊天风格（body class）：默认 / body.bubblechat / body.documentstyle
  *   头像样式（body class）：默认圆形 / body.big-avatars / body.square-avatars / body.rounded-avatars
  */
 
-/* ───────── 一、容器满幅（三种聊天风格通用） ───────── */
-#sheld {
+/* ───────── 一、容器满幅 ───────── */
+body.sf-fit-full #sheld {
     width: 100dvw !important;
     max-width: 100dvw !important;
     left: 0 !important;
@@ -14,7 +19,7 @@
     margin: 0 !important;
 }
 
-#chat {
+body.sf-fit-full #chat {
     width: 100% !important;
     border-left: 0 !important;
     border-right: 0 !important;
@@ -26,7 +31,7 @@
     overflow-x: hidden !important;
 }
 
-#chat::-webkit-scrollbar {
+body.sf-fit-full #chat::-webkit-scrollbar {
     width: 0 !important;
     height: 0 !important;
     display: none !important;
@@ -35,83 +40,82 @@
 
 /* ───────── 二、默认（平面）风格 ───────── */
 /* 只压左右，不动上下，避免影响首条/末条间距 */
-body:not(.bubblechat):not(.documentstyle) .mes {
+body.sf-fit-full:not(.bubblechat):not(.documentstyle) .mes {
     padding-left: 2px !important;
     padding-right: 0 !important;
 }
 
-body:not(.bubblechat):not(.documentstyle) .mes_block {
+body.sf-fit-full:not(.bubblechat):not(.documentstyle) .mes_block {
     padding-left: 4px !important;
 }
 
-body:not(.bubblechat):not(.documentstyle) .mes_text {
+body.sf-fit-full:not(.bubblechat):not(.documentstyle) .mes_text {
     padding-right: 0 !important;
 }
 
 /* ───────── 三、气泡风格 ───────── */
-/* 气泡本身就是 .mes 的背景块，不能让 padding 归零，只收窄左右并保留圆角外观 */
-body.bubblechat .mes {
+/* 气泡本身就是 .mes 的背景块，padding 不能归零，只收窄左右 */
+body.sf-fit-full.bubblechat .mes {
     padding-left: 6px !important;
     padding-right: 6px !important;
 }
 
-body.bubblechat .mes_block {
+body.sf-fit-full.bubblechat .mes_block {
     padding-left: 4px !important;
 }
 
-body.bubblechat .mes_text {
+body.sf-fit-full.bubblechat .mes_text {
     padding-right: 0 !important;
 }
 
 /* ───────── 四、文档风格 ───────── */
 /* 文档风格下头像、名字、时间已被 ST 用 display:none 隐藏，
-   剩下的缩进来自 .mes_block 的 margin-right 和 .mes_text 的 margin-left */
-body.documentstyle #chat .mes .mes_block {
+   剩下缩进来自 .mes_block 的 margin-right 和 .mes_text 的 margin-left */
+body.sf-fit-full.documentstyle #chat .mes .mes_block {
     margin-right: 0 !important;
 }
 
-body.documentstyle #chat .mes .mes_text,
-body.documentstyle #chat .last_mes .mes_text {
+body.sf-fit-full.documentstyle #chat .mes .mes_text,
+body.sf-fit-full.documentstyle #chat .last_mes .mes_text {
     margin-left: 0 !important;
 }
 
-body.documentstyle #chat .mes:not(.last_mes) {
+body.sf-fit-full.documentstyle #chat .mes:not(.last_mes) {
     padding-left: 2px !important;
     padding-right: 0 !important;
 }
 
-/* ───────── 五、头像不再是独立一列 ───────── */
+/* ───────── 五、头像挪进名字行 ───────── */
 /* ST 的真实结构：
      .mes > .mesAvatarWrapper > .avatar / .mesIDDisplay / .mes_timer / .tokenCounterDisplay
    JS 只把 .avatar 本体搬进名字行（插在 <small class="timestamp"> 之后、编辑按钮之前），
    被搬空的原包裹层留在原地压成 0 宽，于是左侧不再占一列。 */
 
-/* 搬进名字行后的头像小图标 */
-body:not(.documentstyle) .mes .ch_name .avatar {
+body.sf-fit-avatar:not(.documentstyle) .mes .ch_name .avatar {
     flex: 0 0 auto !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: none !important;
-    /* 高度可调：在 Custom CSS 里写 :root { --sf-avatar-h: 48px; } 即可改大改小 */
+    /* 高度由设置面板的「头像大小」控制 */
     height: var(--sf-avatar-h, 40px) !important;
     max-height: var(--sf-avatar-h, 40px) !important;
     min-height: 0 !important;
     /* 比例由 JS 从 ST 的 --avatar-base-width/height 换算成无单位数写入，
-       这样圆形/方形/矩形/圆角四种头像都不会被拉变形 */
+       圆形/方形/矩形/圆角四种头像都不会被拉变形 */
     aspect-ratio: var(--sf-avatar-ar, 1);
     margin: 0 0 0 6px !important;
     cursor: pointer;
     /* border-radius 交给 ST 自己的样式决定，不覆盖 */
 }
 
-body:not(.documentstyle) .mes .ch_name .avatar img {
+body.sf-fit-avatar:not(.documentstyle) .mes .ch_name .avatar img {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover;
 }
 
 /* 头像被搬走后，原包裹层不再占宽度 */
-body:not(.documentstyle) .mes > .mesAvatarWrapper[data-sf-moved="1"] {
+body.sf-fit-avatar:not(.documentstyle) .mes > .mesAvatarWrapper[data-sf-moved="1"] {
     width: 0 !important;
     min-width: 0 !important;
     max-width: 0 !important;
@@ -127,7 +131,7 @@ body:not(.documentstyle) .mes > .mesAvatarWrapper[data-sf-moved="1"] {
 }
 
 /* 名字行：名字靠左，时间与头像一起靠右且紧挨着 */
-body:not(.documentstyle) .mes .ch_name {
+body.sf-fit-avatar:not(.documentstyle) .mes .ch_name {
     display: flex !important;
     flex-wrap: wrap;
     align-items: center;
@@ -136,19 +140,17 @@ body:not(.documentstyle) .mes .ch_name {
     max-width: 100%;
 }
 
-body:not(.documentstyle) .mes .ch_name .timestamp,
-body:not(.documentstyle) .mes .ch_name .mes_timer {
+body.sf-fit-avatar:not(.documentstyle) .mes .ch_name .timestamp,
+body.sf-fit-avatar:not(.documentstyle) .mes .ch_name .mes_timer {
     margin-left: auto !important;
 }
 
-/* 兜底说明：这里刻意不给未搬动的 .mesAvatarWrapper 写任何隐藏规则。
-   如果 JS 没能把头像搬进名字行，最坏结果应当是「头像原位不动」，
-   而不是「头像凭空消失」。 */
+/* 兜底：不给未搬动的 .mesAvatarWrapper 写隐藏规则，
+   万一 JS 没能搬成功，最坏结果只是头像留在原位，绝不会消失。 */
 
 /* ───────── 六、手工悬浮滑块 ───────── */
-/* 这是一个自绘的 div，不是原生的 ::-webkit-scrollbar。
-   元素本身很宽（46px）当作触摸热区，视觉上的长条由 ::before 画，
-   两者分开，所以能做得又粗又好点，同时平时保持很淡的半透明。 */
+/* 自绘的 div，不是原生的 ::-webkit-scrollbar。
+   元素本身很宽（46px）当触摸热区，视觉长条由 ::before 画。 */
 #sf-fit-thumb {
     position: fixed;
     right: 0;
@@ -181,13 +183,12 @@ body:not(.documentstyle) .mes .ch_name .mes_timer {
     pointer-events: none;
 }
 
-/* 手指按住热区、或鼠标移上来、或正在滚动时变实 */
+/* 按住热区、鼠标移上来、或正在滚动时变实 */
 #sf-fit-thumb.sf-hot::before {
     opacity: 0.5;
     width: 20px;
 }
 
-/* 拖动中：最实、最粗 */
 #sf-fit-thumb.sf-active {
     cursor: grabbing;
 }
@@ -195,4 +196,35 @@ body:not(.documentstyle) .mes .ch_name .mes_timer {
 #sf-fit-thumb.sf-active::before {
     opacity: 0.9;
     width: 24px;
+}
+
+/* ───────── 七、设置面板 ───────── */
+.sf-folio-fit-settings .sf-opt-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.sf-folio-fit-settings .sf-opt-label {
+    min-width: 56px;
+    white-space: nowrap;
+}
+
+.sf-folio-fit-settings #sf-opt-avatar-height {
+    flex: 1 1 auto;
+    min-width: 90px;
+}
+
+.sf-folio-fit-settings #sf-opt-avatar-height-num {
+    width: 64px;
+    flex: 0 0 auto;
+}
+
+.sf-folio-fit-settings .sf-opt-hint {
+    display: block;
+    margin-top: 8px;
+    opacity: 0.65;
+    line-height: 1.4;
 }
