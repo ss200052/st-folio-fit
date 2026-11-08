@@ -1,0 +1,174 @@
+/* 满幅与悬浮滑块 — 样式
+ *
+ * 需要同时适配：
+ *   聊天风格（body class）：默认 / body.bubblechat / body.documentstyle
+ *   头像样式（body class）：默认圆形 / body.big-avatars / body.square-avatars / body.rounded-avatars
+ */
+
+/* ───────── 一、容器满幅（三种聊天风格通用） ───────── */
+#sheld {
+    width: 100dvw !important;
+    max-width: 100dvw !important;
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 !important;
+}
+
+#chat {
+    width: 100% !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    /* 关掉原生滚动条，右侧零占位 */
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    scrollbar-gutter: auto !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+#chat::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+    background: transparent !important;
+}
+
+/* ───────── 二、默认（平面）风格 ───────── */
+/* 只压左右，不动上下，避免影响首条/末条间距 */
+body:not(.bubblechat):not(.documentstyle) .mes {
+    padding-left: 2px !important;
+    padding-right: 0 !important;
+}
+
+body:not(.bubblechat):not(.documentstyle) .mes_block {
+    padding-left: 4px !important;
+}
+
+body:not(.bubblechat):not(.documentstyle) .mes_text {
+    padding-right: 0 !important;
+}
+
+/* ───────── 三、气泡风格 ───────── */
+/* 气泡本身就是 .mes 的背景块，不能让 padding 归零，只收窄左右并保留圆角外观 */
+body.bubblechat .mes {
+    padding-left: 6px !important;
+    padding-right: 6px !important;
+}
+
+body.bubblechat .mes_block {
+    padding-left: 4px !important;
+}
+
+body.bubblechat .mes_text {
+    padding-right: 0 !important;
+}
+
+/* ───────── 四、文档风格 ───────── */
+/* 文档风格下头像、名字、时间已被 ST 用 display:none 隐藏，
+   剩下的缩进来自 .mes_block 的 margin-right 和 .mes_text 的 margin-left */
+body.documentstyle #chat .mes .mes_block {
+    margin-right: 0 !important;
+}
+
+body.documentstyle #chat .mes .mes_text,
+body.documentstyle #chat .last_mes .mes_text {
+    margin-left: 0 !important;
+}
+
+body.documentstyle #chat .mes:not(.last_mes) {
+    padding-left: 2px !important;
+    padding-right: 0 !important;
+}
+
+/* ───────── 五、头像不再是独立一列 ───────── */
+/* JS 会把 .mesAvatarWrapper 挪进 .ch_name 的时间后面。
+   这里只负责把它变成行内小图标——尺寸用高度+比例控制，
+   不写死宽高，四种头像样式（圆/矩/方/圆角）的比例都不会被压变形。 */
+body:not(.documentstyle) .mes .mesAvatarWrapper {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 0 0 6px !important;
+    flex: 0 0 auto !important;
+    display: inline-flex !important;
+    align-items: center;
+    vertical-align: middle;
+    position: static !important;
+    order: 99;
+}
+
+body:not(.documentstyle) .mes .mesAvatarWrapper .avatar {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 22px !important;
+    max-height: 22px !important;
+    min-height: 0 !important;
+    /* 比例由 JS 从 ST 的 --avatar-base-width/height 换算成无单位数写入，
+       这样圆形/方形/矩形/圆角四种头像都不会被拉变形 */
+    aspect-ratio: var(--sf-avatar-ar, 1);
+    margin: 0 !important;
+    cursor: pointer;
+    /* border-radius 交给 ST 自己的样式决定，不覆盖 */
+}
+
+/* 名字行：名字靠左，时间与头像一起靠右且紧挨着 */
+body:not(.documentstyle) .mes .ch_name {
+    display: flex !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start !important;
+    gap: 0 6px;
+    max-width: 100%;
+}
+
+body:not(.documentstyle) .mes .ch_name .mes_timer,
+body:not(.documentstyle) .mes .ch_name .timestamp {
+    margin-left: auto !important;
+}
+
+/* 头像没能挪位时的兜底：绝不占一列宽度 */
+body:not(.documentstyle) .mes > .mesAvatarWrapper {
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* ───────── 六、悬浮矩形滑块 ───────── */
+#sf-fit-thumb {
+    position: absolute;
+    right: 1px;
+    top: 0;
+    width: 5px;
+    border-radius: 3px;
+    background: var(--SmartThemeBodyColor, rgba(255, 255, 255, 0.85));
+    opacity: 0.14;
+    transition: opacity 0.18s ease, width 0.18s ease;
+    z-index: 60;
+    pointer-events: auto;
+    touch-action: none;
+    cursor: grab;
+    will-change: transform;
+    display: none;
+}
+
+#sf-fit-thumb.sf-visible {
+    display: block;
+}
+
+#sf-fit-thumb.sf-hot {
+    opacity: 0.55;
+}
+
+#sf-fit-thumb.sf-active {
+    opacity: 0.9;
+    width: 7px;
+    cursor: grabbing;
+}
