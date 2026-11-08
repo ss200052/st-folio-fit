@@ -198,7 +198,36 @@ body.sf-fit-avatar:not(.documentstyle) .mes .ch_name .mes_timer {
     width: 24px;
 }
 
-/* ───────── 七、设置面板 ───────── */
+/* ───────── 七、底部按钮收纳 ───────── */
+/* 收起时整块按钮区不占位，只留一个细长的开关 */
+.sf-dock-collapsed {
+    display: none !important;
+}
+
+#sf-dock-toggle {
+    display: block;
+    width: 100%;
+    margin: 2px 0;
+    padding: 2px 8px;
+    font-size: 11px;
+    line-height: 1.6;
+    letter-spacing: 1px;
+    color: var(--SmartThemeBodyColor, #cfcfd8);
+    background: transparent;
+    border: 1px dashed var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.25));
+    border-radius: 4px;
+    opacity: 0.55;
+    cursor: pointer;
+    transition: opacity 0.16s ease, background 0.16s ease;
+}
+
+#sf-dock-toggle:hover,
+#sf-dock-toggle:active {
+    opacity: 0.95;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ───────── 八、设置面板 ───────── */
 .sf-folio-fit-settings .sf-opt-row {
     display: flex;
     align-items: center;
