@@ -13,11 +13,12 @@
 
 const MODULE_NAME = 'st-folio-fit';
 const DEFAULTS = {
-    full: true,        // 聊天区满幅
-    slider: true,      // 悬浮滑块
-    avatar: true,      // 头像挪到名字行
-    avatarHeight: 40,  // 名字行里头像高度(px)
-    dock: true,        // 收纳底部一堆脚本按钮
+    full: true,          // 聊天区满幅
+    slider: true,        // 悬浮滑块
+    avatar: true,        // 头像挪到名字行
+    avatarHeight: 40,    // 名字行里头像高度(px)
+    dock: true,          // 收纳底部一堆脚本按钮
+    hideOnDrawer: true,  // 顶栏面板展开时把滑块收起来
 };
 
 /* ───────────── 设置存取 ───────────── */
@@ -99,34 +100,34 @@ function destroyThumb() {
 /* 顶栏有没有被展开——直接读酒馆自己打在 DOM 上的展开标记，
    不靠"聊天区被盖住了""高度变了"这类旁证去推断。
 
-   酒馆的抽屉面板收起时会带上 closedDrawer 类，展开时这个类被摘掉；
-   侧边导航面板则是展开时挂上 openDrawer。这两处标记就是开关本身，
-   读到哪个算哪个，任一命中即算展开。 */
+   难点在于：酒馆里有一堆 .drawer-content 是常驻显示的，天生就不带
+   closedDrawer。如果按「不带 closedDrawer 就算展开」去判，这些常驻面板
+   会让滑块永远藏起来。所以加一道准入：**只有亲眼见过它带着 closedDrawer
+   收起过，才算一个会开合的真抽屉**，此后它摘掉 closedDrawer 才叫展开。
+   常驻面板永远进不了这个名单，也就永远不影响判定。
+
+   另外两个标记是明确的展开信号，直接认：
+   - 侧边导航展开时挂 openDrawer
+   - 有些实现用 aria-expanded="true"
+*/
+const seenClosedDrawers = new Set();
+
 function anyTopDrawerOpen() {
-    const isOpen = (el) => !!el && !el.classList.contains('closedDrawer');
-
-    /* 一、顶栏容器里的抽屉面板。不同版本容器层级不同，两种都查。 */
-    const holders = '#top-settings-holder .drawer-content, #top-bar .drawer-content';
-    for (const el of document.querySelectorAll(holders)) {
-        if (isOpen(el)) return true;
+    /* 先把此刻正收着的都登记进来 */
+    for (const el of document.querySelectorAll('.drawer-content')) {
+        if (el.classList.contains('closedDrawer')) seenClosedDrawers.add(el);
     }
 
-    /* 二、已知的顶栏面板，逐个点名兜底——万一某个版本把面板挪出了上面那些容器。 */
-    const KNOWN = [
-        'rm_api_block',          // 接口设置
-        'AdvancedFormatting',    // 高级格式化
-        'WorldInfo',             // 世界书
-        'user-settings-block',   // 用户设置
-        'Backgrounds',           // 背景
-        'rm_extensions_block',   // 扩展
-        'PersonaManagement',     // 角色管理
-        'extensionsMenu',        // 扩展菜单
-    ];
-    for (const id of KNOWN) {
-        if (isOpen(document.getElementById(id))) return true;
+    /* 登记过的抽屉里，谁把 closedDrawer 摘了，谁就是展开状态 */
+    for (const el of [...seenClosedDrawers]) {
+        if (!el.isConnected) {
+            seenClosedDrawers.delete(el);
+            continue;
+        }
+        if (!el.classList.contains('closedDrawer')) return true;
     }
 
-    /* 三、侧边导航抽屉：展开时挂 openDrawer。 */
+    /* 侧边导航的两种展开标记 */
     for (const id of ['left-nav-panel', 'right-nav-panel']) {
         const el = document.getElementById(id);
         if (!el) continue;
@@ -140,8 +141,8 @@ function anyTopDrawerOpen() {
 function updateThumb() {
     if (!thumb || !chatEl || !chatEl.isConnected) return;
 
-    /* 有顶栏面板展开着，滑块一律藏起来 */
-    if (anyTopDrawerOpen()) {
+    /* 有顶栏面板展开着，滑块一律藏起来（可在设置里关掉这个行为） */
+    if (settings().hideOnDrawer !== false && anyTopDrawerOpen()) {
         thumb.classList.remove('sf-visible');
         return;
     }
@@ -471,7 +472,15 @@ function boot() {
        就是开关本身。schedule 用 rAF 合并，密集变化也只重算一次。 */
     safe(() => {
         if (!window.MutationObserver) return;
-        const moDrawer = new MutationObserver(() => schedule());
+        const moDrawer = new MutationObserver((records) => {
+            /* 滑块自己的 sf-visible / sf-hot 也是 class 变化，
+               不排除的话会自己触发自己，白跑一遍重算 */
+            for (const r of records) {
+                if (r.target === thumb) continue;
+                schedule();
+                return;
+            }
+        });
         moDrawer.observe(document.body || document.documentElement, {
             attributes: true,
             attributeFilter: ['class'],
@@ -504,6 +513,7 @@ function bindSettingsUI() {
     const $slider = document.getElementById('sf-opt-slider');
     const $avatar = document.getElementById('sf-opt-avatar');
     const $dock = document.getElementById('sf-opt-dock');
+    const $hideDrawer = document.getElementById('sf-opt-hide-drawer');
     const $range = document.getElementById('sf-opt-avatar-height');
     const $num = document.getElementById('sf-opt-avatar-height-num');
 
@@ -513,6 +523,7 @@ function bindSettingsUI() {
     $slider.checked = !!s.slider;
     $avatar.checked = !!s.avatar;
     if ($dock) $dock.checked = !!s.dock;
+    if ($hideDrawer) $hideDrawer.checked = s.hideOnDrawer !== false;
     $range.value = s.avatarHeight;
     $num.value = s.avatarHeight;
 
@@ -528,6 +539,11 @@ function bindSettingsUI() {
     if ($dock) {
         $dock.addEventListener('change', () => {
             s.dock = $dock.checked; persist(); applySettings();
+        });
+    }
+    if ($hideDrawer) {
+        $hideDrawer.addEventListener('change', () => {
+            s.hideOnDrawer = $hideDrawer.checked; persist(); applySettings();
         });
     }
 
