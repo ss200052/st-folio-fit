@@ -17,6 +17,7 @@ const DEFAULTS = {
     slider: true,      // 悬浮滑块
     avatar: true,      // 头像挪到名字行
     avatarHeight: 40,  // 名字行里头像高度(px)
+    dock: true,        // 收纳底部一堆脚本按钮
 };
 
 /* ───────────── 设置存取 ───────────── */
@@ -264,6 +265,92 @@ function scanAvatars() {
     }
 }
 
+/* ───────────── 底部按钮收纳 ───────────── */
+/* TavernHelper 的脚本按钮（山河舆图、音频播放器等）与 MVU 的「重新处理变量」
+   都挤在输入区附近同一个容器里，换行后很占地方。
+   不靠 class 猜，而是按按钮文字特征找到那个容器，整体收进一个开关后面。 */
+
+const DOCK_KEYWORDS = ['山河舆图', '音频播放', '音频', '重新处理变量', '重新生成变量', '处理变量'];
+let dockEl = null;
+let dockToggle = null;
+
+function looksLikeButton(el) {
+    if (!el || el.nodeType !== 1) return false;
+    if (el.tagName === 'BUTTON') return true;
+    const cls = String(el.className || '');
+    return /menu_button|mes_button|button/.test(cls) || el.getAttribute('role') === 'button';
+}
+
+/* 按文字特征找到「装着这些脚本按钮的那个容器」
+   搜索范围严格限定在酒馆原生的输入框容器内部（#send_form / #form_sheld），
+   不碰聊天区，避免误收其它按钮。 */
+function findButtonDock() {
+    const root = document.getElementById('send_form') || document.getElementById('form_sheld');
+    if (!root) return null;
+
+    const all = root.querySelectorAll('button, .menu_button, [role="button"], div, span');
+    for (const el of all) {
+        const txt = (el.textContent || '').trim();
+        if (!txt || txt.length > 40) continue;
+        if (!DOCK_KEYWORDS.some(k => txt.indexOf(k) !== -1)) continue;
+
+        /* 命中关键词，向上找同时装着多个按钮的那层，但不许越过输入区容器 */
+        let node = el.parentElement;
+        for (let depth = 0; depth < 6 && node; depth++) {
+            if (node === root || node === document.body || node === document.documentElement) break;
+            const btns = node.querySelectorAll('button, .menu_button, [role="button"]');
+            if (btns.length >= 2) return node;
+            node = node.parentElement;
+        }
+    }
+    return null;
+}
+
+function ensureDock() {
+    if (!settings().dock) { destroyDock(); return; }
+
+    /* 已收纳且还在页面上就什么都不做 */
+    if (dockEl && dockEl.isConnected) return;
+
+    dockEl = findButtonDock();
+    if (!dockEl) return;
+
+    if (dockEl.classList.contains('sf-dock-collapsed')) return;
+
+    dockEl.classList.add('sf-dock-collapsed');
+    dockEl.dataset.sfDock = '1';
+
+    if (!dockToggle || !dockToggle.isConnected) {
+        dockToggle = document.createElement('button');
+        dockToggle.id = 'sf-dock-toggle';
+        dockToggle.type = 'button';
+        dockToggle.textContent = '⋯ 展开按钮';
+        dockToggle.title = '展开／收起底部的脚本按钮';
+        dockToggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const collapsed = dockEl.classList.toggle('sf-dock-collapsed');
+            dockToggle.textContent = collapsed ? '⋯ 展开按钮' : '收起按钮';
+        });
+    }
+
+    if (dockEl.parentElement && !dockToggle.isConnected) {
+        dockEl.parentElement.insertBefore(dockToggle, dockEl);
+    }
+}
+
+function destroyDock() {
+    if (dockEl) {
+        dockEl.classList.remove('sf-dock-collapsed');
+        delete dockEl.dataset.sfDock;
+        dockEl = null;
+    }
+    if (dockToggle) {
+        dockToggle.remove();
+        dockToggle = null;
+    }
+}
+
 /* ───────────── 应用设置 ───────────── */
 
 function applySettings() {
@@ -283,6 +370,8 @@ function applySettings() {
     } else {
         safe(scanAvatars, 'scanAvatars');
     }
+
+    safe(ensureDock, 'ensureDock');
 }
 
 /* ───────────── 调度 ───────────── */
@@ -299,6 +388,7 @@ function schedule() {
 function tick() {
     safe(scanAvatars, 'scanAvatars');
     safe(() => { if (ensureThumb()) updateThumb(); }, 'tick');
+    safe(ensureDock, 'ensureDock');
 }
 
 function boot() {
@@ -335,6 +425,7 @@ function bindSettingsUI() {
     const $full = document.getElementById('sf-opt-full');
     const $slider = document.getElementById('sf-opt-slider');
     const $avatar = document.getElementById('sf-opt-avatar');
+    const $dock = document.getElementById('sf-opt-dock');
     const $range = document.getElementById('sf-opt-avatar-height');
     const $num = document.getElementById('sf-opt-avatar-height-num');
 
@@ -343,6 +434,7 @@ function bindSettingsUI() {
     $full.checked = !!s.full;
     $slider.checked = !!s.slider;
     $avatar.checked = !!s.avatar;
+    if ($dock) $dock.checked = !!s.dock;
     $range.value = s.avatarHeight;
     $num.value = s.avatarHeight;
 
@@ -355,6 +447,11 @@ function bindSettingsUI() {
     $avatar.addEventListener('change', () => {
         s.avatar = $avatar.checked; persist(); applySettings();
     });
+    if ($dock) {
+        $dock.addEventListener('change', () => {
+            s.dock = $dock.checked; persist(); applySettings();
+        });
+    }
 
     const setHeight = (v) => {
         let n = Math.round(Number(v));
