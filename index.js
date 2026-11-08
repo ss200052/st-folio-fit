@@ -96,8 +96,55 @@ function destroyThumb() {
     }
 }
 
+/* 顶栏有没有被展开——直接读酒馆自己打在 DOM 上的展开标记，
+   不靠"聊天区被盖住了""高度变了"这类旁证去推断。
+
+   酒馆的抽屉面板收起时会带上 closedDrawer 类，展开时这个类被摘掉；
+   侧边导航面板则是展开时挂上 openDrawer。这两处标记就是开关本身，
+   读到哪个算哪个，任一命中即算展开。 */
+function anyTopDrawerOpen() {
+    const isOpen = (el) => !!el && !el.classList.contains('closedDrawer');
+
+    /* 一、顶栏容器里的抽屉面板。不同版本容器层级不同，两种都查。 */
+    const holders = '#top-settings-holder .drawer-content, #top-bar .drawer-content';
+    for (const el of document.querySelectorAll(holders)) {
+        if (isOpen(el)) return true;
+    }
+
+    /* 二、已知的顶栏面板，逐个点名兜底——万一某个版本把面板挪出了上面那些容器。 */
+    const KNOWN = [
+        'rm_api_block',          // 接口设置
+        'AdvancedFormatting',    // 高级格式化
+        'WorldInfo',             // 世界书
+        'user-settings-block',   // 用户设置
+        'Backgrounds',           // 背景
+        'rm_extensions_block',   // 扩展
+        'PersonaManagement',     // 角色管理
+        'extensionsMenu',        // 扩展菜单
+    ];
+    for (const id of KNOWN) {
+        if (isOpen(document.getElementById(id))) return true;
+    }
+
+    /* 三、侧边导航抽屉：展开时挂 openDrawer。 */
+    for (const id of ['left-nav-panel', 'right-nav-panel']) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        if (el.classList.contains('openDrawer')) return true;
+        if (el.getAttribute('aria-expanded') === 'true') return true;
+    }
+
+    return false;
+}
+
 function updateThumb() {
     if (!thumb || !chatEl || !chatEl.isConnected) return;
+
+    /* 有顶栏面板展开着，滑块一律藏起来 */
+    if (anyTopDrawerOpen()) {
+        thumb.classList.remove('sf-visible');
+        return;
+    }
 
     const viewH = chatEl.clientHeight;
     const contentH = chatEl.scrollHeight;
@@ -418,6 +465,19 @@ function boot() {
     }, true);
     window.addEventListener('resize', schedule);
     window.addEventListener('orientationchange', schedule);
+
+    /* 顶栏面板展开／收起时要立刻反映，不能等下一个 tick。
+       盯住 body 子树里的 class 变化——closedDrawer 的出现与消失、openDrawer 的挂上
+       就是开关本身。schedule 用 rAF 合并，密集变化也只重算一次。 */
+    safe(() => {
+        if (!window.MutationObserver) return;
+        const moDrawer = new MutationObserver(() => schedule());
+        moDrawer.observe(document.body || document.documentElement, {
+            attributes: true,
+            attributeFilter: ['class'],
+            subtree: true,
+        });
+    }, 'drawer-observer');
 
     safe(() => {
         const host = document.getElementById('chat');
