@@ -202,6 +202,18 @@
     /* ───────────── 调度 ───────────── */
 
     var scheduled = false;
+    var hotTimer = null;
+
+    /* 手机上没有 hover，滚动时让滑块短暂变亮，停下后自动淡回半透明 */
+    function flashHot() {
+        if (!thumb || dragging) return;
+        thumb.classList.add('sf-hot');
+        if (hotTimer) clearTimeout(hotTimer);
+        hotTimer = setTimeout(function () {
+            hotTimer = null;
+            if (thumb && !dragging) thumb.classList.remove('sf-hot');
+        }, 900);
+    }
 
     function schedule() {
         if (scheduled) return;
@@ -224,7 +236,10 @@
     function boot() {
         tick();
 
-        document.addEventListener('scroll', schedule, true);
+        document.addEventListener('scroll', function () {
+            safe(flashHot, 'flashHot');
+            schedule();
+        }, true);
         window.addEventListener('resize', schedule);
         window.addEventListener('orientationchange', schedule);
 
