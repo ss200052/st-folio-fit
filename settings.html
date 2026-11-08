@@ -1,0 +1,30 @@
+<div id="sf-folio-fit-settings" class="sf-folio-fit-settings">
+    <div class="inline-drawer">
+        <div class="inline-drawer-toggle inline-drawer-header">
+            <b>满幅与悬浮滑块</b>
+            <div class="inline-drawer-icon fa-solid fa-circle-chevron-down ui-draggable-handle"></div>
+        </div>
+        <div class="inline-drawer-content">
+            <label class="checkbox_label" for="sf-opt-full">
+                <input type="checkbox" id="sf-opt-full">
+                <span>聊天区满幅（压掉左右固定留白）</span>
+            </label>
+            <label class="checkbox_label" for="sf-opt-slider">
+                <input type="checkbox" id="sf-opt-slider">
+                <span>用悬浮滑块代替原生滚动条</span>
+            </label>
+            <label class="checkbox_label" for="sf-opt-avatar">
+                <input type="checkbox" id="sf-opt-avatar">
+                <span>头像挪到「名字 + 时间」这一行</span>
+            </label>
+
+            <div class="sf-opt-row">
+                <span class="sf-opt-label">头像大小</span>
+                <input type="range" id="sf-opt-avatar-height" class="neo-range-slider" min="16" max="72" step="1">
+                <input type="number" id="sf-opt-avatar-height-num" class="neo-range-input" min="16" max="72" step="1">
+            </div>
+
+            <small class="sf-opt-hint">满幅与滑块改动会立刻生效；头像相关项在刷新对话后完全归位。</small>
+        </div>
+    </div>
+</div>
